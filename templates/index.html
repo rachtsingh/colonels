@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>colonels.io</title>
+</head>
+<body>
+	Welcome to colonels, {{ username }}. 
+	{% if not logged_in %}
+	<form action="/user/setusername" method="POST">
+		<input type="text" name="username" placeholder="choose a username"/><button type="submit">Save</button>
+	</form>
+	{% endif %}
+	<div>
+		<a href="/game">Create a new game</a>
+	</div>
+</body>
+</html>

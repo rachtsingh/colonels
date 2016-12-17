@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{{ matchid }}</title>
+	{% if production %}
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.2.2/pixi.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.js"></script>
+		<script>
+			var matchid = "{{ matchid }}";
+			var production = true;
+		</script>
+	{% else %} 
+		<script src="/static/js/pixi.js"></script>
+		<script src="/static/js/zepto.js"></script>
+		<script>
+			var matchid = "{{ matchid }}";
+			var production = false;
+		</script>
+	{% endif %}
+</head>
+<body>
+	{% if started %}
+		
+	{% else %}
+		<button id="start">
+			Start game
+		</button>
+	{% endif %}
+</body>
+</html>
