@@ -32,6 +32,7 @@ func main() {
 	}
 
 	log.Printf("Starting colonels server on port: %d", cmd_flags.port)
+
 	r := mux.NewRouter()
 
 	// main pages to serve up HTML
@@ -41,6 +42,7 @@ func main() {
 	// allow the user to set various settings
 	setupUserMethods(r)
 	setupGameMethods(r)
+	initGlobals()
 
 	// start up the server
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cmd_flags.port), r))

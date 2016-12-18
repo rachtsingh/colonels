@@ -124,6 +124,7 @@ func GameSetupHandler(w http.ResponseWriter, r *http.Request) {
 
 	// has the game been seen before?
 	if !gameExists(gameid) {
+		log.Printf("Starting game: %s", gameid)
 		setupNewGame(gameid)
 	}
 

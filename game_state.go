@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/websocket"
+	"log"
 	"strings"
 	"sync"
 )
@@ -17,6 +18,10 @@ type newPlayer struct {
 
 var waiting_games map[string](chan newPlayer)
 var active_games_lock = &sync.RWMutex{}
+
+func initGlobals() {
+	waiting_games = make(map[string](chan newPlayer))
+}
 
 /*
 	Type defs for Game-specific code
@@ -59,6 +64,7 @@ func setupNewGame(gameid string) {
 	active_games_lock.Lock()
 	waiting_games[gameid] = make(chan newPlayer)
 	new_game := gameState{}
+
 	// start the gameLoop for that game
 	go gameLoop(waiting_games[gameid], &new_game)
 	active_games_lock.Unlock()
@@ -106,6 +112,7 @@ func gameLoop(playerChan chan newPlayer, game *gameState) {
 			ready[player.username] = false
 			go websocketListener(&player, playerConnect)
 		case msg := <-playerConnect:
+			log.Printf("received message: %s", msg)
 			pieces := strings.Split(msg, ":")
 			if pieces[0] == "ready" {
 				ready[pieces[1]] = true
