@@ -10,11 +10,18 @@ import (
 )
 
 type commandLineFlags struct {
-	port int
+	port    int
+	debug   bool
+	verbose bool
 }
+
+// make it a global
+var cmd_flags *commandLineFlags
 
 func parseCmdLine() (*commandLineFlags, error) {
 	portPtr := flag.Int("port", 8000, "port to serve on")
+	debugPtr := flag.Bool("debug", false, "whether to enable debug mode")
+	verbosePtr := flag.Bool("verbose", false, "whether to enable verbose mode (does nothing right now)")
 	flag.Parse()
 
 	// because Unix!
@@ -22,11 +29,12 @@ func parseCmdLine() (*commandLineFlags, error) {
 		return nil, errors.New("Invalid port number: must be root to access ports below 1024")
 	}
 
-	return &commandLineFlags{port: *portPtr}, nil
+	return &commandLineFlags{port: *portPtr, debug: *debugPtr, verbose: *verbosePtr}, nil
 }
 
 func main() {
-	cmd_flags, err := parseCmdLine()
+	var err error
+	cmd_flags, err = parseCmdLine()
 	if err != nil {
 		log.Fatal(err)
 	}

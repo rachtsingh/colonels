@@ -66,7 +66,7 @@ func setupNewGame(gameid string) {
 	new_game := gameState{}
 
 	// start the gameLoop for that game
-	go gameLoop(waiting_games[gameid], &new_game)
+	go gameLoop(waiting_games[gameid], &new_game, gameid)
 	active_games_lock.Unlock()
 }
 
@@ -95,7 +95,7 @@ func countTrue(arr map[string]bool) int {
 	return sum
 }
 
-func gameLoop(playerChan chan newPlayer, game *gameState) {
+func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 	ready := make(map[string]bool)
 	players := make([]newPlayer, 0)
 
@@ -105,7 +105,7 @@ func gameLoop(playerChan chan newPlayer, game *gameState) {
 	// we'll need to define a new channel (or channels) for communicating
 	// during the game itself.
 
-	for countTrue(ready) < len(players) || len(players) < 2 {
+	for countTrue(ready) < len(players) || (len(players) < 2 && !cmd_flags.debug) {
 		select {
 		case player := <-playerChan:
 			players = append(players, player)
@@ -129,5 +129,7 @@ func gameLoop(playerChan chan newPlayer, game *gameState) {
 			}
 		}
 	}
+
+	log.Printf("Starting game: %s", gameid)
 	// playGame()
 }
