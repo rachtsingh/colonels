@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 )
 
 /*
@@ -26,26 +27,30 @@ func initGlobals() {
 /*
 	Type defs for Game-specific code
 	i.e. how do we store game data in memory
+
+	Important!: if you want to write these as JSON,
+	then you have to write them as capitals (to export)
+
+	We should pack this using msgpack or protobufs
 */
 type unitType int
 
 const (
-	empty = iota
-	mountain
-	town
-	capital
+	Empty = iota
+	Mountain
+	Town
+	Capital
 )
 
 type cellValue struct {
-	owner    int
-	troops   int
-	cellType unitType
+	Owner    int
+	Troops   int
+	CellType unitType
 }
 
 type gameState struct {
-	cells         [][]cellValue
-	players       []string
-	ready_players []string
+	Cells   [][]cellValue
+	Players []string
 }
 
 func gameExists(gameid string) bool {
@@ -95,22 +100,52 @@ func countTrue(arr map[string]bool) int {
 	return sum
 }
 
+type socketMsg struct {
+	msgType int
+	data    interface{}
+}
+
+func broadcast(msgType int, data interface{}, chans []chan socketMsg) {
+	for _, c := range chans {
+		// so we don't block
+		go func() {
+			c <- socketMsg{msgType: msgType, data: data}
+		}()
+	}
+}
+
+func cleanup(username string, ready *map[string]bool, players *[]newPlayer, websocketChans *[]chan socketMsg) {
+	log.Printf("closing channels for player %s", username)
+	// clean up! want to avoid memory leaks
+	for i := 0; i < len(*players); i++ {
+		if (*players)[i].username == username {
+			*players = append((*players)[:i], (*players)[i+1:]...)
+			close((*websocketChans)[i])
+			(*websocketChans) = append((*websocketChans)[:i], (*websocketChans)[i+1:]...)
+			break
+		}
+	}
+	delete(*ready, username)
+}
+
 func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
+	log.Printf("entering game loop... %s", gameid)
+
 	ready := make(map[string]bool)
 	players := make([]newPlayer, 0)
+	websocketChans := make([]chan socketMsg, 0)
 
 	// websocket listeners can push to this when the player changes readiness
 	playerConnect := make(chan string)
 
-	// we'll need to define a new channel (or channels) for communicating
-	// during the game itself.
-
-	for countTrue(ready) < len(players) || (len(players) < 2 && !cmd_flags.debug) {
+	for countTrue(ready) < len(players) || (len(players) < 2 && !cmd_flags.debug) || (len(players) < 1 && cmd_flags.debug) {
 		select {
 		case player := <-playerChan:
 			players = append(players, player)
+			newSocketChan := make(chan socketMsg)
+			websocketChans = append(websocketChans, newSocketChan)
 			ready[player.username] = false
-			go websocketListener(&player, playerConnect, game)
+			go websocketListener(&player, playerConnect, game, newSocketChan)
 		case msg := <-playerConnect:
 			log.Printf("received message: %s", msg)
 			pieces := strings.Split(msg, ":")
@@ -119,17 +154,26 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 			} else if pieces[0] == "unready" {
 				ready[pieces[1]] = false
 			} else if pieces[0] == "disconnect" {
-				for i := 0; i < len(players); i++ {
-					if players[i].username == pieces[1] {
-						players = append(players[:i], players[i+1:]...)
-						break
-					}
-				}
-				delete(ready, pieces[1])
+				cleanup(pieces[1], &ready, &players, &websocketChans)
 			}
 		}
 	}
 
-	log.Printf("Starting game: %s", gameid)
-	// playGame()
+	log.Printf("starting game: %s", gameid)
+	initializeTerrain(game, players)
+
+	for {
+		time.Sleep(1000 * time.Millisecond)
+		// unfortunately, when someone disconnects it means the update won't happen that frame
+		select {
+		case msg := <-playerConnect:
+			pieces := strings.Split(msg, ":")
+			if pieces[0] == "disconnect" {
+				cleanup(pieces[1], &ready, &players, &websocketChans)
+			}
+		default:
+			randomizeTerrain(game)
+			broadcast(0, nil, websocketChans)
+		}
+	}
 }

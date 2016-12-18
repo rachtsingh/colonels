@@ -39,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Starting colonels server on port: %d", cmd_flags.port)
+	log.Printf("starting colonels server on port: %d", cmd_flags.port)
 
 	r := mux.NewRouter()
 

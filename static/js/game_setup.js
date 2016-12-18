@@ -31,7 +31,16 @@ $(document).ready(function() {
 /* when the server sends data, an update, etc. */
 function onmessage(event) {
 	var data = JSON.parse(event.data);
-	console.log(event);
+	units.clear();
+	for (var i = 0; i < data.Cells.length; i++) {
+		for (var j = 0; j < data.Cells[i].length; j++) {
+			if (data.Cells[i][j].CellType == 1) {
+				units.beginFill(0xf44e42, 1);
+				units.drawRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+				units.endFill();
+			}
+		}
+	}
 }
 
 function startGame() {
@@ -42,8 +51,10 @@ function startGame() {
 	mainLayer = new PIXI.Container();
 	// mainLayer.interactive = true;
 	graphics = new PIXI.Graphics();
+	units = new PIXI.Graphics();
 	drawGrid(graphics, 20);
 	mainLayer.addChild(graphics);
+	mainLayer.addChild(units);
 
 	stage.addChild(mainLayer);
 	renderer.render(stage);
