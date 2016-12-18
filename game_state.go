@@ -110,7 +110,7 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 		case player := <-playerChan:
 			players = append(players, player)
 			ready[player.username] = false
-			go websocketListener(&player, playerConnect)
+			go websocketListener(&player, playerConnect, game)
 		case msg := <-playerConnect:
 			log.Printf("received message: %s", msg)
 			pieces := strings.Split(msg, ":")

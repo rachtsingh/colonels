@@ -69,6 +69,9 @@ function drawGrid (graphics, num_cells) {
 		graphics.moveTo(0, i * CELL_SIZE);
 		graphics.lineTo(CELL_SIZE * num_cells, i * CELL_SIZE);
 	}
+	graphics.beginFill(0xcee1ff, 0.5);
+	graphics.drawRect(0, 0, CELL_SIZE * num_cells, CELL_SIZE * num_cells);
+	graphics.endFill();
 }
 
 function setupTouch() {
@@ -79,7 +82,6 @@ function setupTouch() {
 	stage.interactive = true;
 
 	var onDragStart = function(e) {
-		console.log("started!");
 		old.x = mainLayer.position.x;
 		old.y = mainLayer.position.y;
 		touchpoint.x = e.data.global.x;
@@ -100,10 +102,6 @@ function setupTouch() {
 
 	interaction = new PIXI.interaction.InteractionManager(renderer);
 
-	// interaction.on('mousedown', onDragStart);
-	// interaction.on('mouseup', onDragEnd);
-	// interaction.on('mousemove', onDragMove);
-	// stage.interactionManager.onMouseUp = onDragEnd;
 	interaction
         // events for drag start
         .on('mousedown', onDragStart)

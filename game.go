@@ -6,7 +6,7 @@ import (
 )
 
 // used as a goroutine
-func websocketListener(player *newPlayer, readyChan chan string) {
+func websocketListener(player *newPlayer, readyChan chan string, game *gameState) {
 	defer player.socket.Close()
 	log.Printf("Opened websocket connection to user: %s", player.username)
 
