@@ -17,14 +17,17 @@
 			var production = false;
 		</script>
 	{% endif %}
+	<style>
+		body {
+            padding: 0;
+            margin: 0;
+            background-color: #000;
+        }
+	</style>
 </head>
 <body>
-	{% if started %}
-		
-	{% else %}
-		<button id="start">
-			Start game
-		</button>
-	{% endif %}
+	<button id="start">
+		Start game
+	</button>
 </body>
 </html>
