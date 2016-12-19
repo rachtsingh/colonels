@@ -3,6 +3,7 @@
 <head>
 	<title>{{ matchid }}</title>
 	{% if production %}
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.2/require.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.2.2/pixi.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/zepto/1.2.0/zepto.js"></script>
 		<script src="/static/js/game_setup.min.js"></script>
@@ -12,11 +13,12 @@
 			var production = true;
 		</script>
 	{% else %} 
-		<script src="/static/js/pixi.js"></script>
+		<script src="/static/js/require.js"></script>
+		<script src="/static/js/config.js"></script>
+<!-- 		<script src="/static/js/pixi.js"></script>
 		<script src="/static/js/zepto.js"></script>
-		<script src="/static/js/game_setup.js"></script>
 		<script src="/static/js/game.js"></script>
-		<script>
+ -->		<script>
 			var matchid = "{{ matchid }}";
 			var production = false;
 		</script>
@@ -27,9 +29,21 @@
             margin: 0;
             background-color: grey;
         }
+        #status {
+        	margin: 0;
+        	padding: 10px;
+        	background-color: grey;
+        	color: black;
+        	width: 100%;
+        	position: absolute;
+        	top: 0;
+        	left: 0;
+        	right: 0;
+        }
 	</style>
 </head>
 <body>
+	<!-- <span id="status">Ready to connect</span> -->
 	<button id="start">
 		Start game
 	</button>

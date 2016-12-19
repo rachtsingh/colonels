@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package main;
+
+enum Status {
+	READY = 0;
+	UNREADY = 1;
+	DISCONNECT = 2; // probably won't be used
+}
+
+message playerStatus {
+	Status status = 1;
+}
+
+// for boardUpdate
+// figure out how to dedup this and game_state.go
+// still need to port the write over to this
+
+enum squareType {
+	Empty = 0;
+	Mountain = 1;
+	Town = 2;
+	Capital = 3;
+}
+
+message squareValue {
+	int32 owner = 1;
+	int32 troops = 2;
+	squareType type = 3;
+}
+
+message boardUpdate {
+	message innerRow {
+		repeated squareValue value = 1;
+	}
+	repeated innerRow row = 1;
+	repeated string players = 2;
+}

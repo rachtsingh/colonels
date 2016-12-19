@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/golang/protobuf/proto"
 	"log"
 	"math/rand"
 	"strings"
@@ -42,22 +43,26 @@ func websocketListener(player *newPlayer, readyChan chan string, game *gameState
 	}()
 
 	// start the reader (this goroutine)
-	var response map[string]interface{}
-
 	for open {
-		err := player.socket.ReadJSON(&response)
+		mtype, bytes, err := player.socket.ReadMessage()
 		if err != nil {
 			// ok if the websocket thread dies now
 			log.Println("read:", err)
 			break
 		}
-		msg_type := response["m"].(string)
-		log.Printf("read message: %s from user: %s", msg_type, player.username)
-		if msg_type == "ready" || msg_type == "unready" {
-			pieces := []string{msg_type, player.username}
+		if mtype != 2 {
+			log.Printf("improper websocket client message - should be binary.")
+		}
+		msg := &PlayerStatus{}
+		err = proto.Unmarshal(bytes, msg)
+		if err != nil {
+			log.Println("error unmarshaling: ", err)
+		} else {
+			pieces := []string{
+				msg.GetStatus().String(),
+				player.username,
+			}
 			readyChan <- strings.Join(pieces, ":")
-		} else if msg_type == "move" {
-			// do something else here
 		}
 	}
 

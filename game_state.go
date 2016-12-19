@@ -149,11 +149,11 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 		case msg := <-playerConnect:
 			log.Printf("received message: %s", msg)
 			pieces := strings.Split(msg, ":")
-			if pieces[0] == "ready" {
+			if pieces[0] == "READY" {
 				ready[pieces[1]] = true
-			} else if pieces[0] == "unready" {
+			} else if pieces[0] == "UNREADY" {
 				ready[pieces[1]] = false
-			} else if pieces[0] == "disconnect" {
+			} else if pieces[0] == "DISCONNECT" {
 				cleanup(pieces[1], &ready, &players, &websocketChans)
 			}
 		}
