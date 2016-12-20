@@ -73,8 +73,8 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		for (var i = 0; i < data.Cells.length; i++) {
 			for (var j = 0; j < data.Cells[i].length; j++) {
 				if (data.Cells[i][j].CellType == 1) {
-					units.beginFill(0xf44e42, 1);
-					units.drawRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+					units.beginFill(0xffffff, 1);
+					units.drawRect(i * CELL_SIZE + 3, j * CELL_SIZE + 3, CELL_SIZE - 6, CELL_SIZE - 6);
 					units.endFill();
 				}
 			}
@@ -91,6 +91,7 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		window.graphics = new PIXI.Graphics();
 		window.units = new PIXI.Graphics();
 		drawGrid(graphics, 20);
+		// drawBackground(mainLayer);
 		mainLayer.addChild(graphics);
 		mainLayer.addChild(units);
 
@@ -106,8 +107,15 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		requestAnimationFrame(animate);
 	}
 
+	function drawBackground(parent) {
+		var tilingSprite = PIXI.extras.TilingSprite.fromImage('/static/img/footer_lodyas.png', 1200, 1200);
+		parent.addChild(tilingSprite);
+		tilingSprite.position.x = -300;
+		tilingSprite.position.y = -300;
+	}
+
 	function drawGrid (graphics, num_cells) {
-		graphics.lineStyle(1, 0x9ec3ff, 0.7);
+		graphics.lineStyle(2, 0xffffff, 1);
 		// vertical lines
 		for (var i = 0; i < num_cells + 1; i++) {
 			graphics.moveTo(i * CELL_SIZE, 0);
@@ -146,6 +154,18 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 			if (mousedown) {
 				mainLayer.position.x = old.x - (touchpoint.x - e.data.global.x);
 				mainLayer.position.y = old.y - (touchpoint.y - e.data.global.y);
+			}
+			if (mainLayer.position.x > 300) {
+				mainLayer.position.x = 300;
+			}
+			if (mainLayer.position.x < -300) {
+				mainLayer.position.x = -300;
+			}
+			if (mainLayer.position.y > 300) {
+				mainLayer.position.y = 300;
+			}
+			if (mainLayer.position.y < -300) {
+				mainLayer.position.y = -300;
 			}
 		}
 
