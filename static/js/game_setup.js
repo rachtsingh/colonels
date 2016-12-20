@@ -1,6 +1,4 @@
 /* Use for setting up websockets and communication in the game layer */
-var protocol = null;
-
 define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(require) {
 	"use strict";
 	var $ = require('zepto');
@@ -14,7 +12,7 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 	var CELL_SIZE = 30;
 
 	// load the protobufs
-	protocol = require('main_pb');
+	window.protocol = require('main_pb');
 
 	$(document).ready(function() {		
 		if (production) {
@@ -51,13 +49,13 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 			if (server.readyState == WebSocket.OPEN) {
 				if (meta.ready) {
 					meta.ready = false;
-					var msg = new proto.main.playerStatus();
+					var msg = new protocol.playerStatus();
 					msg.setStatus(protocol.Status.UNREADY);
 					server.send(msg.serializeBinary());
 				}
 				else {
 					meta.ready = true;
-					var msg = new proto.main.playerStatus();
+					var msg = new protocol.playerStatus();
 					msg.setStatus(protocol.Status.READY);
 					server.send(msg.serializeBinary());
 				}
