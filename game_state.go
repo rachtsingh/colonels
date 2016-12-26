@@ -13,8 +13,10 @@ import (
 	i.e. how to websocket
 */
 type newPlayer struct {
-	socket   *websocket.Conn
-	username string
+	socket    *websocket.Conn
+	username  string
+	maxMoveId *int32
+	moves     chan PlayerMovement
 }
 
 var waiting_games map[string](chan newPlayer)
@@ -33,7 +35,7 @@ func initGlobals() {
 
 	We should pack this using msgpack or protobufs
 */
-type unitType int
+type unitType int32
 
 const (
 	Empty = iota
@@ -43,14 +45,19 @@ const (
 )
 
 type cellValue struct {
-	Owner    int
-	Troops   int
+	Owner    int32
+	Troops   int32
 	CellType unitType
+}
+
+func cellValueToProto(cell cellValue) SquareValue {
+	return SquareValue{Owner: cell.Owner, Troops: cell.Troops, Type: SquareType(cell.CellType)}
 }
 
 type gameState struct {
 	Cells   [][]cellValue
 	Players []string
+	Round   int
 }
 
 func gameExists(gameid string) bool {
@@ -86,7 +93,13 @@ func addNewPlayer(username string, c *websocket.Conn, gameid string) {
 	// we need to lock because apparently concurrent accesses to maps
 	// are not thread-safe
 	active_games_lock.Lock()
-	waiting_games[gameid] <- newPlayer{username: username, socket: c}
+	// we need buffered channel so we initialize each user with 50 queueable moves
+	waiting_games[gameid] <- newPlayer{
+		username:  username,
+		socket:    c,
+		maxMoveId: new(int32),
+		moves:     make(chan PlayerMovement, 50),
+	}
 	active_games_lock.Unlock()
 }
 
@@ -100,12 +113,13 @@ func countTrue(arr map[string]bool) int {
 	return sum
 }
 
+// we need this intermediate representation because we don't want to pack just yet
 type socketMsg struct {
-	msgType int
+	msgType ServerMessageType
 	data    interface{}
 }
 
-func broadcast(msgType int, data interface{}, chans []chan socketMsg) {
+func broadcast(msgType ServerMessageType, data interface{}, chans []chan socketMsg) {
 	for _, c := range chans {
 		// so we don't block
 		go func() {
@@ -149,18 +163,27 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 		case msg := <-playerConnect:
 			log.Printf("received message: %s", msg)
 			pieces := strings.Split(msg, ":")
-			if pieces[0] == "READY" {
+			if pieces[0] == "Ready" {
 				ready[pieces[1]] = true
-			} else if pieces[0] == "UNREADY" {
+			} else if pieces[0] == "Unready" {
 				ready[pieces[1]] = false
-			} else if pieces[0] == "DISCONNECT" {
+			} else if pieces[0] == "Disconnect" {
 				cleanup(pieces[1], &ready, &players, &websocketChans)
 			}
 		}
 	}
 
 	log.Printf("starting game: %s", gameid)
-	initializeTerrain(game, players)
+
+	// make a map of username to int
+	usernameToID := make(map[string]int32)
+	for i := 0; i < len(players); i++ {
+		usernameToID[players[i].username] = int32(i + 1)
+	}
+
+	initializeTerrain(game, players, usernameToID)
+	randomizeTerrain(game)
+	broadcast(ServerMessageType_FullBoard, nil, websocketChans)
 
 	for {
 		time.Sleep(1000 * time.Millisecond)
@@ -172,8 +195,8 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 				cleanup(pieces[1], &ready, &players, &websocketChans)
 			}
 		default:
-			randomizeTerrain(game)
-			broadcast(0, nil, websocketChans)
+			updateGameState(players, game)
+			broadcast(ServerMessageType_FullBoard, nil, websocketChans)
 		}
 	}
 }

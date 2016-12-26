@@ -2,20 +2,53 @@ syntax = "proto3";
 
 package main;
 
-enum Status {
-	READY = 0;
-	UNREADY = 1;
-	DISCONNECT = 2; // probably won't be used
+/*
+	Submessage types for communicating from the client to the server
+*/
+enum clientStatus {
+	Ready = 0;
+	Unready = 1;
+	Disconnect = 2; // probably won't be used
 }
 
-message playerStatus {
-	Status status = 1;
+message playerMovement {
+	int32 oldx = 1;
+	int32 oldy = 2;
+	int32 newx = 3;
+	int32 newy = 4;
+	int32 id = 5;
 }
 
-// for boardUpdate
-// figure out how to dedup this and game_state.go
-// still need to port the write over to this
+message cancelQueue {
+	int32 id = 1;
+}
 
+/*
+	Main message type to communicate from the client to the server.
+	The `which` enum identifies how the server should decode it, and
+	the corresponding field in the clientToServer message should be
+	filled in. Other data is thrown away.
+
+	I don't know how I feel about wrapping things. I would prefer to avoid
+	it if at all possible.
+*/
+enum clientMessageType {
+	ClientStatus = 0;
+	PlayerMovement = 1;
+	CancelQueue = 2;
+}
+
+message clientToServer {
+	clientMessageType which = 1;
+	clientStatus status = 2;
+	playerMovement movement = 3;
+	cancelQueue cancel = 4;
+}
+
+
+/*
+	Submessage types for communicating from the server to the client
+*/
 enum squareType {
 	Empty = 0;
 	Mountain = 1;
@@ -29,10 +62,31 @@ message squareValue {
 	squareType type = 3;
 }
 
-message boardUpdate {
+message fullBoard {
 	message innerRow {
-		repeated squareValue value = 1;
+		repeated squareValue column = 1;
 	}
-	repeated innerRow row = 1;
+	repeated innerRow rows = 1;
 	repeated string players = 2;
+}
+
+message singleCellUpdate {
+	int32 x = 1;
+	int32 y = 2;
+	squareValue value = 3;
+}
+
+/*
+	Main message to communicate from server to client. 
+	See client to server above.
+*/
+enum serverMessageType {
+	FullBoard = 0;
+	SingleCellUpdate = 1;
+}
+
+message ServerToClient {
+	serverMessageType which = 1;
+	fullBoard board = 2;
+	singleCellUpdate update = 3;
 }

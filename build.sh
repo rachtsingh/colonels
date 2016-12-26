@@ -3,7 +3,7 @@
 protoc --proto_path=static/proto --go_out=. --js_out=import_style=commonjs,binary:./static/js/ static/proto/main.proto
 # ok, this is a sad day - we're going to need to patch the output from the 
 # golang exporter in order to get requirejs working.
-echo 'define(function(require, exports, module){\n' | cat - static/js/main_pb.js > temp && mv temp static/js/main_pb.js
+echo "define(function(require, exports, module){" | cat - static/js/main_pb.js > temp && mv temp static/js/main_pb.js
 echo "});" >> static/js/main_pb.js
 
 go build -o bin/colonels
