@@ -28,6 +28,7 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 	var gameReady = false;
 
 	var MOVEID = 1;
+	var LAST_MOVE_EXECUTED = 0;
 
 	// load the protobufs
 	window.protocol = require('main_pb');
@@ -93,6 +94,9 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 						// do we want to clone or just copy ptrs here?
 						window.board[i][j] = Object.assign({}, column[j]);
 					}
+					if (msg.board.moveexecuted > 0) {
+						removeArrows(msg.board.moveexecuted);
+					}
 				}
 				break;
 			case protocol.serverMessageType.SINGLECELLUPDATE:
@@ -113,6 +117,7 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		.add([
 			"../static/img/mountain.png",
 			"../static/img/crown.png",
+			"../static/img/arrow.png"
 		])
 		.load(function() {
 			window.renderer = new PIXI.CanvasRenderer(
@@ -145,6 +150,11 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 			// numeric indicators
 			window.textIndicators = [];
 			initializeText()
+
+			// arrow (queued moves) indicators
+			window.arrows = new PIXI.Container();
+			window.arrow_map = {};
+			mainLayer.addChild(arrows);
 
 			stage.addChild(mainLayer);
 			renderer.render(stage);
@@ -235,13 +245,6 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		requestAnimationFrame(animate);
 	}
 
-	function drawBackground(parent) {
-		var tilingSprite = PIXI.extras.TilingSprite.fromImage('/static/img/footer_lodyas.png', 1200, 1200);
-		parent.addChild(tilingSprite);
-		tilingSprite.position.x = -300;
-		tilingSprite.position.y = -300;
-	}
-
 	function drawGrid (graphics, num_cells) {
 		graphics.lineStyle(1, 0, 0);
 		graphics.beginFill(0xffffff, 1);
@@ -306,14 +309,20 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 				// send a move up to the client
 				pushCommand(selectionIndicator.x/CELL_SIZE, selectionIndicator.y/CELL_SIZE, newcellx, newcelly);
 			}
-			
+
 			if (!currentDrag.moved) {
 				mainLayer.removeChild(selectionIndicator);
-				mainLayer.addChild(selectionIndicator);
-				if (isValid(newcellx, newcelly)) {
-					// these are relative to the mainLayer positions
-					selectionIndicator.position.x = newcellx * CELL_SIZE;
-					selectionIndicator.position.y = newcelly * CELL_SIZE;				
+				// since we're using positon to keep track of selection we need to unset it
+				selectionIndicator.position.x = -100;
+				selectionIndicator.position.y = -100;
+
+				if (!hovering) {
+					mainLayer.addChild(selectionIndicator);
+					if (isValid(newcellx, newcelly)) {
+						// these are relative to the mainLayer positions
+						selectionIndicator.position.x = newcellx * CELL_SIZE;
+						selectionIndicator.position.y = newcelly * CELL_SIZE;				
+					}
 				}
 			}
 
@@ -333,7 +342,7 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 			}
 		}
 
-		// check whether the mouse position is next to the selected position
+		// check whether the mouse position is next to the selected position, and if so draw the hover box
 		var checkHover = function(e) {
 			var newcellx = Math.floor((e.data.global.x - mainLayer.position.x)/CELL_SIZE);
 			var newcelly = Math.floor((e.data.global.y - mainLayer.position.y)/CELL_SIZE);
@@ -423,7 +432,23 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		msg.setCancel(cancel);
 		server.send(msg.serializeBinary());
 
+		removeArrows(MOVEID);
 		MOVEID = MOVEID + 1;
+	}
+
+	// remove all arrows that don't belong any longer because they're out of date
+	function removeArrows(executed) {
+		console.log(executed, LAST_MOVE_EXECUTED);
+		for (var i = LAST_MOVE_EXECUTED + 1; i <= executed; i++) {
+			if (i in arrow_map) {
+				arrows.removeChild(arrow_map[i]);
+			}
+		}
+		LAST_MOVE_EXECUTED = executed;
+	}
+
+	function calculateAngle(a, b, x, y) {
+		return Math.atan2(y - b, x - a);
 	}
 
 	// send a move from (a, b) to (x, y)
@@ -438,6 +463,22 @@ define(['require', 'google-protobuf', 'zepto', 'main_pb', 'pixi'], function(requ
 		movement.setId(MOVEID);
 		msg.setMovement(movement);
 		server.send(msg.serializeBinary());
+
+		console.log("queueing move:", MOVEID);
+
+		// create new arrow indicating the queued move
+		var arrow = new PIXI.Sprite(
+			PIXI.loader.resources["../static/img/arrow.png"].texture
+		)
+		arrow.anchor.x = 0;
+		arrow.anchor.y = 0.5;
+		arrow.pivot.x = 0.5;
+		arrow.pivot.y = 0.5;
+		arrow.rotation = calculateAngle(a, b, x, y);
+		arrow.position.x = (a + 0.5) * CELL_SIZE;
+		arrow.position.y = (b + 0.5) * CELL_SIZE;
+		arrow_map[MOVEID] = arrow;
+		arrows.addChild(arrow);
 
 		MOVEID = MOVEID + 1;
 	}

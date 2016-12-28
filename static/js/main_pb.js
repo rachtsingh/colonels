@@ -954,7 +954,8 @@ proto.main.fullBoard.toObject = function(includeInstance, msg) {
   var f, obj = {
     rowsList: jspb.Message.toObjectList(msg.getRowsList(),
     proto.main.fullBoard.innerRow.toObject, includeInstance),
-    playersList: jspb.Message.getField(msg, 2)
+    playersList: jspb.Message.getField(msg, 2),
+    moveexecuted: jspb.Message.getFieldWithDefault(msg, 3, 0)
   };
 
   if (includeInstance) {
@@ -999,6 +1000,10 @@ proto.main.fullBoard.deserializeBinaryFromReader = function(msg, reader) {
     case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.addPlayers(value);
+      break;
+    case 3:
+      var value = /** @type {number} */ (reader.readInt32());
+      msg.setMoveexecuted(value);
       break;
     default:
       reader.skipField();
@@ -1050,6 +1055,13 @@ proto.main.fullBoard.prototype.serializeBinaryToWriter = function (writer) {
   if (f.length > 0) {
     writer.writeRepeatedString(
       2,
+      f
+    );
+  }
+  f = this.getMoveexecuted();
+  if (f !== 0) {
+    writer.writeInt32(
+      3,
       f
     );
   }
@@ -1117,6 +1129,21 @@ proto.main.fullBoard.prototype.addPlayers = function(value, opt_index) {
 
 proto.main.fullBoard.prototype.clearPlayersList = function() {
   this.setPlayersList([]);
+};
+
+
+/**
+ * optional int32 moveExecuted = 3;
+ * @return {number}
+ */
+proto.main.fullBoard.prototype.getMoveexecuted = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
+};
+
+
+/** @param {number} value */
+proto.main.fullBoard.prototype.setMoveexecuted = function(value) {
+  jspb.Message.setField(this, 3, value);
 };
 
 

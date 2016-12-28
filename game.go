@@ -34,6 +34,12 @@ func websocketListener(player *newPlayer, readyChan chan string, game *gameState
 				switch gameMsg.msgType {
 				case ServerMessageType_FullBoard:
 					board := new(FullBoard)
+					moveId, prs := gameMsg.data.(map[string]int32)[player.username]
+					if prs {
+						board.MoveExecuted = moveId
+					} else {
+						board.MoveExecuted = 0
+					}
 					for i := 0; i < len(game.Cells); i++ {
 						board.Rows = append(board.Rows, new(FullBoardInnerRow))
 						for j := 0; j < len(game.Cells[i]); j++ {
@@ -148,20 +154,20 @@ func incrementallyChangeTerrain(game *gameState) (int32, int32, int32) {
 	}
 }
 
-func readMoveNonblocking(moves chan PlayerMovement, maxMoveId int32) (PlayerMovement, error) {
+func readMoveNonblocking(moves chan PlayerMovement, maxMoveId int32) (PlayerMovement, int32, error) {
 	// let's do a nonblocking select until either we read something that is good, or we exhaust the channel
+	var i int32 = 0
 	for {
 		select {
 		case move := <-moves:
-			log.Println("read move!", move)
-			log.Println("maxMoveId:", maxMoveId)
 			if move.GetId() > maxMoveId {
-				return move, nil
+				return move, move.GetId(), nil
 			} else {
+				i = move.GetId() // we've depleted this move
 				continue
 			}
 		default:
-			return PlayerMovement{}, errors.New("No valid moves for this player")
+			return PlayerMovement{}, i, errors.New("No valid moves for this player")
 		}
 	}
 }
@@ -171,9 +177,12 @@ type IdPlayerMovement struct {
 	player *newPlayer
 }
 
-func updateGameState(players []newPlayer, game *gameState) {
+func updateGameState(players []newPlayer, game *gameState) *map[string]int32 {
 	// increment round
 	game.Round += 1
+
+	// we're going to return the list of highest-executed-moves
+	movesExecuted := make(map[string]int32)
 
 	// increment troops
 	for i := 0; i < len(game.Cells); i++ {
@@ -188,11 +197,11 @@ func updateGameState(players []newPlayer, game *gameState) {
 	}
 	validMoves := make([]IdPlayerMovement, 0)
 	for _, player := range players {
-		move, err := readMoveNonblocking(player.moves, atomic.LoadInt32(player.maxMoveId))
+		move, maxId, err := readMoveNonblocking(player.moves, atomic.LoadInt32(player.maxMoveId))
 		if err == nil {
-			log.Println("read move:", move)
 			validMoves = append(validMoves, IdPlayerMovement{move: &move, player: &player})
 		}
+		movesExecuted[player.username] = maxId
 	}
 	perm := rand.Perm(len(validMoves))
 	for i := 0; i < len(validMoves); i++ {
@@ -201,11 +210,28 @@ func updateGameState(players []newPlayer, game *gameState) {
 		oldCell := &game.Cells[move.GetOldx()][move.GetOldy()]
 		newCell := &game.Cells[move.GetNewx()][move.GetNewy()]
 		if oldCell.Owner > 0 && (game.Players[oldCell.Owner-1] == validMoves[perm[i]].player.username) {
-			if newCell.CellType == Empty && oldCell.Troops > 1 {
-				newCell.Owner = oldCell.Owner
-				newCell.Troops = oldCell.Troops - 1
-				oldCell.Troops = 1
+			if newCell.CellType != Mountain && oldCell.Troops > 1 {
+				if oldCell.Owner == newCell.Owner {
+					newCell.Owner = oldCell.Owner
+					newCell.Troops = oldCell.Troops - 1 + newCell.Troops
+					oldCell.Troops = 1
+				} else {
+					// battle!
+					if oldCell.Troops > newCell.Troops+1 {
+						newCell.Troops = (oldCell.Troops - 1) - newCell.Troops
+						if newCell.CellType == Capital {
+							// game over for the other player!!
+							log.Printf("took the capital!")
+						}
+						newCell.Owner = oldCell.Owner
+					} else {
+						newCell.Troops -= (oldCell.Troops - 1)
+						oldCell.Troops = 1
+					}
+				}
 			}
 		}
 	}
+
+	return &movesExecuted
 }

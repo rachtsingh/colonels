@@ -122,9 +122,9 @@ type socketMsg struct {
 func broadcast(msgType ServerMessageType, data interface{}, chans []chan socketMsg) {
 	for _, c := range chans {
 		// so we don't block
-		go func() {
+		go func(c chan socketMsg) {
 			c <- socketMsg{msgType: msgType, data: data}
-		}()
+		}(c)
 	}
 }
 
@@ -183,7 +183,7 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 
 	initializeTerrain(game, players, usernameToID)
 	randomizeTerrain(game)
-	broadcast(ServerMessageType_FullBoard, nil, websocketChans)
+	broadcast(ServerMessageType_FullBoard, map[string]int32{}, websocketChans)
 
 	for {
 		time.Sleep(1000 * time.Millisecond)
@@ -195,8 +195,8 @@ func gameLoop(playerChan chan newPlayer, game *gameState, gameid string) {
 				cleanup(pieces[1], &ready, &players, &websocketChans)
 			}
 		default:
-			updateGameState(players, game)
-			broadcast(ServerMessageType_FullBoard, nil, websocketChans)
+			movesExecuted := updateGameState(players, game)
+			broadcast(ServerMessageType_FullBoard, *movesExecuted, websocketChans)
 		}
 	}
 }

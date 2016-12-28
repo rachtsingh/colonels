@@ -68,6 +68,7 @@ message fullBoard {
 	}
 	repeated innerRow rows = 1;
 	repeated string players = 2;
+	int32 moveExecuted = 3;
 }
 
 message singleCellUpdate {

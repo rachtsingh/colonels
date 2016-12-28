@@ -87,7 +87,7 @@ func GamePageHandler(w http.ResponseWriter, r *http.Request) {
 	gameid := vars["gameid"]
 
 	// set an anonymous username if there isn't a username right now
-	if session.Values["username"] == "" {
+	if session.Values["username"] == nil {
 		s := []string{"Anonymous", RandString(2)}
 		session.Values["username"] = strings.Join(s, "")
 		session.Save(r, w)
@@ -126,6 +126,12 @@ func GameSetupHandler(w http.ResponseWriter, r *http.Request) {
 	if !gameExists(gameid) {
 		log.Printf("creating new game: %s", gameid)
 		setupNewGame(gameid)
+	}
+
+	if session.Values["username"] == nil {
+		s := []string{"Anonymous", RandString(2)}
+		session.Values["username"] = strings.Join(s, "")
+		session.Save(r, w)
 	}
 
 	// note! we can't use c again, since we've given ownership of it away
