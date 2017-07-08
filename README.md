@@ -1,6 +1,24 @@
 ## colonels.io
 
 ### todo
-1. implement a `broadcast` function inside `game_state.go` so that we can send messages to the waiting client about how many people have joined, how many people are ready, etc. We'll need to put together a JSON/string based channel for this, maybe a struct withan enum and a string or something (not sure what the right Go idiom is)
-  - actually it's not clear if I should just have one thread for each user, or whether it should be a read thread and a write thread. Basically, the issue is that readJSON isn't a channel like in select. It seems to block.
-2. figure out the Pixi.js renderer and figure out how to push fast updates (shouldn't be too bad). - I'm working on this now
+It's unclear what's left to do - I'll need to dig into the code at some point. IIRC it's mostly stuff like
+JavaScript game state management (i.e. has someone won, and how does the game server communicate that to the 
+client). I'll dig into it later and see what it needs to finish.
+
+### how to build
+
+#### prerequisites
+I'm currently on a bus without wifi, so some of these directions might be wrong, but I think you need:
+1. A recent version of Go (I have go1.7.4 for Mac OSX (darwin)), the language used to write the server side 
+code. You can either grab this from the [Go website](golang.org), or via Brew.
+2. A recent version of `protoc` (I have libprotoc 3.1.0), which I think you can install via Brew. This is the 
+tool that translates the protobuf spec for your messages (see /static/proto/main.proto for an example) into 
+Go and JavaScript code that can encode/decode the binary messages sent over the wire (see main.pb.go for an 
+example).
+
+#### build
+Just run:
+``./build.sh``
+You may need to `chmod +x build.sh` first, though that's unlikely. If you open the script, it:
+1. Runs the protobuf translator, which generates the JavaScript/Go files necessary for message encode/decode
+2. Runs the colonels.io codebase in debug mode using the Go interpreter.
