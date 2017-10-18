@@ -3,7 +3,7 @@
 ### what is this?
 Last fall my friends and I played [generals.io](generals.io) for a while after finals and liked it a lot. I'm a bit of an optimization nerd (see my other repos), so I decided to build a clone in Go as a way of learning the language (with lots of help from https://gobyexample.com/, which was written by one of my old bosses!).
 
-The main thing I had fun with was writing the protobuf bindings in JavaScript (turns out, if you're careful about synchronization you can send ~10 bytes over the wire), though it isn't practical for a decent number of reasons. I think websocket concurrency in Go is neat too.
+The main thing I had fun with was writing the protobuf bindings in JavaScript (turns out, if you're careful about synchronization you can send ~10 bytes over the wire), though it isn't practical for a decent number of reasons. I think concurrent websocket connections using goroutines is neat too. I was partway through a commit that that would add automated load/protocol tests for the websocket when I ran out of time.
 
 In an ideal world I'd sit down and finish this, but there's a lot of neat research I want to work on instead, so this will have to wait. If someone wants to adopt it or learn from the codebase feel free.
 
